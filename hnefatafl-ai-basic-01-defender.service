@@ -1,0 +1,10 @@
+[Unit]
+Description=Copenhagen Hnefatafl AI
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/usr/games/hnefatafl-rs-ai --username basic-01 --password PASSWORD --role attacker
+
+[Install]
+WantedBy=multi-user.target
