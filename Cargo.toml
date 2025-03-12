@@ -2,6 +2,16 @@
 name = "hnefatafl-rs-ai"
 version = "0.1.0"
 edition = "2024"
+authors = ["David Campbell <dcampbell24@gmail.com>"]
+rust-version =  "1.85"
+description = "Copenhagen AI."
+documentation = "https://docs.rs/hnefatafl-copenhagen/"
+readme = "README.md"
+homepage = "https://hnefatafl.org"
+repository = "https://github.com/dcampbell24/hnefatafl-copenhagen"
+license = "MIT OR Apache-2.0"
+keywords = ["ai", "board-game", "copenhagan", "hnefatafl", "tafl"]
+categories = ["game-engines", "games"]
 
 [dependencies]
 anyhow = "1"
