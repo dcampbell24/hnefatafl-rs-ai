@@ -22,7 +22,7 @@ use hnefatafl_copenhagen::{
     status::Status,
 };
 use hnefatafl_egui::ai::{Ai, BasicAi};
-use log::{debug, LevelFilter};
+use log::{debug, info, LevelFilter};
 
 // Move 26, defender wins, corner escape, time per move 15s 2025-03-06.
 
@@ -167,7 +167,7 @@ fn wait_for_challenger(
 
         let message: Vec<_> = buf.split_ascii_whitespace().collect();
         if Some("challenge_requested") == message.get(1).copied() {
-            debug!("{message:?}");
+            info!("{message:?}");
             buf.clear();
 
             break;
