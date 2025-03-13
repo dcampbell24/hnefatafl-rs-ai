@@ -1857,10 +1857,13 @@ name = "hnefatafl-rs-ai"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chrono",
  "clap",
+ "env_logger",
  "hnefatafl",
  "hnefatafl-copenhagen",
  "hnefatafl-egui",
+ "log",
 ]
 
 [[package]]
