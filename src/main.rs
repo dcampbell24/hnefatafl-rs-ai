@@ -1,5 +1,9 @@
 use std::{
-    env, io::{BufRead, BufReader, Write}, net::TcpStream, str::FromStr, time::Duration
+    env,
+    io::{BufRead, BufReader, Write},
+    net::TcpStream,
+    str::FromStr,
+    time::Duration,
 };
 
 use anyhow::Error;
@@ -22,7 +26,7 @@ use hnefatafl_copenhagen::{
     status::Status,
 };
 use hnefatafl_egui::ai::{Ai, BasicAi};
-use log::{debug, info, LevelFilter};
+use log::{LevelFilter, debug, info};
 
 // Move 26, defender wins, corner escape, time per move 15s 2025-03-06.
 
@@ -278,7 +282,11 @@ fn handle_messages(
                 return Ok(());
             }
 
-            let play = format!("{}-{}", from.fmt_other(), to.fmt_other());
+            let play = format!(
+                "{}-{}",
+                from.fmt_other().to_ascii_lowercase(),
+                to.fmt_other().to_ascii_lowercase()
+            );
             let play = Play::from_str(&play).unwrap();
 
             if let Err(invalid_play) = game_.do_play(play) {
