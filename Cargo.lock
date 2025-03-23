@@ -1811,9 +1811,9 @@ dependencies = [
 
 [[package]]
 name = "hnefatafl-copenhagen"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee848e39322ac09c5edfb0d55dbdf72bf5da7cf8ea42e39b4fbded6fc7bbd154"
+checksum = "8b059fff890445984a31a2a2878a5644d0483f1b4db2580a728fc11b27ede537"
 dependencies = [
  "anyhow",
  "chrono",
