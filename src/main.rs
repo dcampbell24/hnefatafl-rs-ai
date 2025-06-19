@@ -19,7 +19,6 @@ use hnefatafl::{
 use hnefatafl_copenhagen::{
     VERSION_ID,
     ai::{AI, AiBanal},
-    color::Color,
     game::Game,
     play::{Plae, Vertex},
     role::Role,
@@ -83,7 +82,7 @@ fn main() -> anyhow::Result<()> {
     assert_eq!(buf, "= login\n");
     buf.clear();
 
-    let color = Color::from(&args.role);
+    let role = &args.role;
     loop {
         let game_id;
 
@@ -119,7 +118,7 @@ fn main() -> anyhow::Result<()> {
             game,
             game_,
             &game_id,
-            &color,
+            &role,
             &mut reader,
             &mut tcp,
         )?;
@@ -191,7 +190,7 @@ fn handle_messages(
     mut game: Game,
     mut game_: hnefatafl::game::Game<BitfieldBoardState<u128>>,
     game_id: &str,
-    color: &Color,
+    role: &Role,
     reader: &mut BufReader<TcpStream>,
     tcp: &mut TcpStream,
 ) -> anyhow::Result<()> {
@@ -212,7 +211,7 @@ fn handle_messages(
 
             debug!("{info:?}\n");
 
-            let mut play_game = Plae::from_str_(&play_game_.to_string(), color)?;
+            let mut play_game = Plae::from_str_(&play_game_.to_string(), role)?;
 
             debug!("{}", play_game.to_string().trim());
 
@@ -239,7 +238,7 @@ fn handle_messages(
 
             if let Err(invalid_play) = game_.do_play(play_game_) {
                 debug!("invalid_play: {invalid_play:?}");
-                tcp.write_all(format!("game {game_id} play {color} resigns _\n").as_bytes())?;
+                tcp.write_all(format!("game {game_id} play {role} resigns _\n").as_bytes())?;
                 return Ok(());
             }
 
@@ -250,11 +249,11 @@ fn handle_messages(
                 return Ok(());
             }
         } else if Some("play") == message.get(2).copied() {
-            let Some(color) = message.get(3).copied() else {
-                panic!("expected color");
+            let Some(role) = message.get(3).copied() else {
+                panic!("expected role");
             };
-            let Ok(color) = Color::from_str(color) else {
-                panic!("expected color to be a color");
+            let Ok(role) = Role::from_str(role) else {
+                panic!("expected role to be a role");
             };
 
             let Some(from) = message.get(4).copied() else {
@@ -274,7 +273,7 @@ fn handle_messages(
                 panic!("expected to to be a vertex");
             };
 
-            let play = format!("play {color} {from} {to}\n");
+            let play = format!("play {role} {from} {to}\n");
             debug!("{}", play.trim());
             game.read_line(&play)?;
 
@@ -291,7 +290,7 @@ fn handle_messages(
 
             if let Err(invalid_play) = game_.do_play(play) {
                 debug!("invalid_play: {invalid_play:?}");
-                tcp.write_all(format!("game {game_id} play {color} resigns _\n").as_bytes())?;
+                tcp.write_all(format!("game {game_id} play {role} resigns _\n").as_bytes())?;
                 return Ok(());
             }
 
@@ -309,6 +308,7 @@ fn side_from_role(role: Role) -> Side {
     match role {
         Role::Attacker => Side::Attacker,
         Role::Defender => Side::Defender,
+        Role::Roleless => panic!("you can't be roleless")
     }
 }
 
