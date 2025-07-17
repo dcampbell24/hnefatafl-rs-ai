@@ -93,6 +93,7 @@ fn main() -> anyhow::Result<()> {
             new_game(&mut tcp, args.role, &mut reader, &mut buf)?;
 
             let message: Vec<_> = buf.split_ascii_whitespace().collect();
+            println!("{message:?}");
             game_id = message[3].to_string();
             buf.clear();
 
@@ -136,7 +137,7 @@ fn new_game(
     reader: &mut BufReader<TcpStream>,
     buf: &mut String,
 ) -> anyhow::Result<()> {
-    tcp.write_all(format!("new_game {role} rated fischer 900000 10\n").as_bytes())?;
+    tcp.write_all(format!("new_game {role} rated fischer 900000 10 11\n").as_bytes())?;
 
     loop {
         // "= new_game game GAME_ID ai-00 _ rated fischer 900000 10 _ false {}\n"
@@ -226,8 +227,8 @@ fn handle_messages(
 
                 play_game_ = Play::from_str(&format!(
                     "{}-{}",
-                    play.from.fmt_other(),
-                    play.to.fmt_other()
+                    play.from,
+                    play.to,
                 ))
                 .unwrap();
 
@@ -283,8 +284,8 @@ fn handle_messages(
 
             let play = format!(
                 "{}-{}",
-                from.fmt_other().to_ascii_lowercase(),
-                to.fmt_other().to_ascii_lowercase()
+                from.to_string().to_ascii_lowercase(),
+                to.to_string().to_ascii_lowercase()
             );
             let play = Play::from_str(&play).unwrap();
 
