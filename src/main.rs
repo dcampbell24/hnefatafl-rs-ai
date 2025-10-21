@@ -253,9 +253,7 @@ fn handle_messages(
                 return Ok(());
             }
 
-            let play = if let Plae::Play(play) = play {
-                play
-            } else {
+            let Plae::Play(play) = play else {
                 unreachable!();
             };
 
