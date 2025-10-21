@@ -20,7 +20,7 @@ use hnefatafl_copenhagen::{
     VERSION_ID,
     ai::{AI, AiBanal},
     game::Game,
-    play::{Plae, Vertex},
+    play::Plae,
     role::Role,
     status::Status,
 };
@@ -242,49 +242,31 @@ fn handle_messages(
                 return Ok(());
             }
 
-            tcp.write_all(format!("game {game_id} {play_game}").as_bytes())?;
+            tcp.write_all(format!("game {game_id} {play_game}\n").as_bytes())?;
             debug!("{}", game.board);
 
             if game.status != Status::Ongoing {
                 return Ok(());
             }
         } else if Some("play") == message.get(2).copied() {
-            let Some(role) = message.get(3).copied() else {
-                panic!("expected role");
-            };
-            let Ok(role) = Role::from_str(role) else {
-                panic!("expected role to be a role");
-            };
+            let play = Plae::try_from(message[2..].to_vec()).expect("we should be getting a valid play");
 
-            let Some(from) = message.get(4).copied() else {
-                panic!("expected from");
-            };
-            if from == "resigns" {
-                return Ok(());
-            }
-            let Ok(from) = Vertex::from_str(from) else {
-                panic!("expected from to be a vertex");
-            };
-
-            let Some(to) = message.get(5).copied() else {
-                panic!("expected to");
-            };
-            let Ok(to) = Vertex::from_str(to) else {
-                panic!("expected to to be a vertex");
-            };
-
-            let play = format!("play {role} {from} {to}\n");
-            debug!("{}", play.trim());
-            game.read_line(&play)?;
+            game.play(&play)?;
 
             if game.status != Status::Ongoing {
                 return Ok(());
             }
 
+            let play = if let Plae::Play(play) = play {
+                play
+            } else {
+                unreachable!();
+            };
+
             let play = format!(
                 "{}-{}",
-                from.to_string().to_ascii_lowercase(),
-                to.to_string().to_ascii_lowercase()
+                play.from.to_string().to_ascii_lowercase(),
+                play.to.to_string().to_ascii_lowercase()
             );
             let play = Play::from_str(&play).unwrap();
 
