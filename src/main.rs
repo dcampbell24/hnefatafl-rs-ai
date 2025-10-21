@@ -17,12 +17,7 @@ use hnefatafl::{
     preset::{boards, rules},
 };
 use hnefatafl_copenhagen::{
-    VERSION_ID,
-    ai::{AI, AiBanal},
-    game::Game,
-    play::Plae,
-    role::Role,
-    status::Status,
+    ai::{AiMonteCarlo, AI}, game::Game, play::Plae, role::Role, status::Status, VERSION_ID
 };
 use hnefatafl_egui::ai::{Ai, BasicAi};
 use log::{LevelFilter, debug, info};
@@ -111,7 +106,7 @@ fn main() -> anyhow::Result<()> {
             side_from_role(args.role),
             Duration::from_secs(15),
         );
-        let ai_2 = Box::new(AiBanal);
+        let ai_2 = AiMonteCarlo::new(&game, Duration::from_secs(10), 20)?;
 
         handle_messages(
             ai_1,
@@ -187,7 +182,7 @@ fn wait_for_challenger(
 #[allow(clippy::too_many_arguments)]
 fn handle_messages(
     mut ai_1: BasicAi,
-    mut ai_2: Box<dyn AI>,
+    mut ai_2: AiMonteCarlo,
     mut game: Game,
     mut game_: hnefatafl::game::Game<BitfieldBoardState<u128>>,
     game_id: &str,
