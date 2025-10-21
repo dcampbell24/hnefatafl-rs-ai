@@ -119,7 +119,7 @@ fn main() -> anyhow::Result<()> {
             game,
             game_,
             &game_id,
-            &role,
+            role,
             &mut reader,
             &mut tcp,
         )?;
@@ -224,12 +224,7 @@ fn handle_messages(
                     panic!("the player can't resign");
                 };
 
-                play_game_ = Play::from_str(&format!(
-                    "{}-{}",
-                    play.from,
-                    play.to,
-                ))
-                .unwrap();
+                play_game_ = Play::from_str(&format!("{}-{}", play.from, play.to,)).unwrap();
 
                 debug!("changed play to: {}", play_game.to_string().trim());
 
@@ -249,7 +244,8 @@ fn handle_messages(
                 return Ok(());
             }
         } else if Some("play") == message.get(2).copied() {
-            let play = Plae::try_from(message[2..].to_vec()).expect("we should be getting a valid play");
+            let play =
+                Plae::try_from(message[2..].to_vec()).expect("we should be getting a valid play");
 
             game.play(&play)?;
 
@@ -290,7 +286,7 @@ fn side_from_role(role: Role) -> Side {
     match role {
         Role::Attacker => Side::Attacker,
         Role::Defender => Side::Defender,
-        Role::Roleless => panic!("you can't be roleless")
+        Role::Roleless => panic!("you can't be roleless"),
     }
 }
 
