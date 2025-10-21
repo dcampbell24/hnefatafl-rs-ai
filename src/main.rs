@@ -217,9 +217,8 @@ fn handle_messages(
             debug!("{}", play_game.to_string().trim());
 
             if game.play(&play_game).is_err() {
-                play_game = game
-                    .generate_move(&mut ai_2)
-                    .expect("the game must be in progress");
+                let generate_move = ai_2.generate_move(&mut game);
+                play_game = generate_move.play.expect("the game must be in progress");
 
                 let Plae::Play(play) = &play_game else {
                     panic!("the player can't resign");
