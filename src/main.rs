@@ -24,7 +24,7 @@ use hnefatafl_copenhagen::{
     role::Role,
     status::Status,
 };
-use hnefatafl_egui::ai::{Ai, BasicAi};
+use hnefatafl_egui::ai::{Ai, AiError, BasicAi};
 use log::{LevelFilter, debug, info};
 
 // Move 26, defender wins, corner escape, time per move 15s 2025-03-06.
@@ -186,10 +186,10 @@ fn wait_for_challenger(
 
 #[allow(clippy::too_many_arguments)]
 fn handle_messages<T: BoardState>(
-    mut ai_1: BasicAi<T>,
-    mut ai_2: AiMonteCarlo,
+    mut ai_rs: BasicAi<T>,
+    mut ai: AiMonteCarlo,
     mut game: Game,
-    mut game_: hnefatafl::game::Game<T>,
+    mut game_rs: hnefatafl::game::Game<T>,
     game_id: &str,
     role: &Role,
     reader: &mut BufReader<TcpStream>,
@@ -206,44 +206,52 @@ fn handle_messages<T: BoardState>(
         let message: Vec<_> = buf.split_ascii_whitespace().collect();
 
         if Some("generate_move") == message.get(2).copied() {
-            let Ok((
-                ValidPlay {
-                    play: mut play_game_,
-                },
-                info,
-            )) = ai_1.next_play(&game_.state)
-            else {
-                panic!("we got an error from ai.next_play");
+            match ai_rs.next_play(&game_rs.state) {
+                Ok((ValidPlay { play: mut play_rs }, info)) => {
+                    debug!("play_rs: {play_rs}");
+                    debug!("{info:?}\n");
+
+                    let plae = Plae::from_str_(&play_rs.to_string(), role)?;
+                    debug!("play: {plae}");
+
+                    if game.play(&plae).is_err() {
+                        let generate_move = ai.generate_move(&mut game);
+                        debug!("changed play to: {generate_move}");
+
+                        let play = match &plae {
+                            Plae::Play(play) => play,
+                            _ => {
+                                tcp.write_all(
+                                    format!("game {game_id} play {role} resigns _\n").as_bytes(),
+                                )?;
+                                return Ok(());
+                            }
+                        };
+
+                        play_rs = Play::from_str(&format!("{}-{}", play.from, play.to,)).unwrap();
+
+                        game.play(&plae)?;
+                        tcp.write_all(format!("game {game_id} {plae}\n").as_bytes())?;
+                    };
+
+                    if let Err(invalid_play) = game_rs.do_play(play_rs) {
+                        debug!("invalid_play: {invalid_play:?}");
+                        tcp.write_all(
+                            format!("game {game_id} play {role} resigns _\n").as_bytes(),
+                        )?;
+
+                        return Ok(());
+                    }
+
+                    tcp.write_all(format!("game {game_id} {plae}\n").as_bytes())?;
+                }
+                Err(AiError::NoPlayAvailable) => {
+                    tcp.write_all(format!("game {game_id} play {role} resigns _\n").as_bytes())?;
+                    return Ok(());
+                }
+                Err(AiError::NotMyTurn) => unreachable!(),
             };
 
-            debug!("{info:?}\n");
-
-            let mut play_game = Plae::from_str_(&play_game_.to_string(), role)?;
-
-            debug!("{}", play_game.to_string().trim());
-
-            if game.play(&play_game).is_err() {
-                let generate_move = ai_2.generate_move(&mut game);
-                play_game = generate_move.play.expect("the game must be in progress");
-
-                let Plae::Play(play) = &play_game else {
-                    panic!("the player can't resign");
-                };
-
-                play_game_ = Play::from_str(&format!("{}-{}", play.from, play.to,)).unwrap();
-
-                debug!("changed play to: {}", play_game.to_string().trim());
-
-                game.play(&play_game)?;
-            };
-
-            if let Err(invalid_play) = game_.do_play(play_game_) {
-                debug!("invalid_play: {invalid_play:?}");
-                tcp.write_all(format!("game {game_id} play {role} resigns _\n").as_bytes())?;
-                return Ok(());
-            }
-
-            tcp.write_all(format!("game {game_id} {play_game}\n").as_bytes())?;
             debug!("{}", game.board);
 
             if game.status != Status::Ongoing {
@@ -263,14 +271,10 @@ fn handle_messages<T: BoardState>(
                 unreachable!();
             };
 
-            let play = format!(
-                "{}-{}",
-                play.from.to_string().to_ascii_lowercase(),
-                play.to.to_string().to_ascii_lowercase()
-            );
+            let play = format!("{}-{}", play.from, play.to,);
             let play = Play::from_str(&play).unwrap();
 
-            if let Err(invalid_play) = game_.do_play(play) {
+            if let Err(invalid_play) = game_rs.do_play(play) {
                 debug!("invalid_play: {invalid_play:?}");
                 tcp.write_all(format!("game {game_id} play {role} resigns _\n").as_bytes())?;
                 return Ok(());
