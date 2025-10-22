@@ -211,13 +211,14 @@ fn handle_messages<T: BoardState>(
                     debug!("play_rs: {play_rs}");
                     debug!("{info:?}\n");
 
-                    let plae = Plae::from_str_(&play_rs.to_string(), role)?;
+                    let mut plae = Plae::from_str_(&play_rs.to_string(), role)?;
                     debug!("play: {plae}");
 
                     if game.play(&plae).is_err() {
                         let generate_move = ai.generate_move(&mut game);
                         debug!("changed play to: {generate_move}");
 
+                        plae = generate_move.play.expect("this is unreachable");
                         let play = match &plae {
                             Plae::Play(play) => play,
                             _ => {
@@ -229,8 +230,8 @@ fn handle_messages<T: BoardState>(
                         };
 
                         play_rs = Play::from_str(&format!("{}-{}", play.from, play.to,)).unwrap();
+                        debug!("changed play to: {play_rs}");
 
-                        game.play(&plae)?;
                         tcp.write_all(format!("game {game_id} {plae}\n").as_bytes())?;
                     };
 
