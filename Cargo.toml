@@ -18,9 +18,9 @@ chrono = "0.4"
 clap = { version ="4", features = ["derive"] }
 env_logger = "0.11"
 log = "0.4"
-hnefatafl = "0.0.1"
+hnefatafl = { git = "https://github.com/bunburya/hnefatafl-rs.git", rev = "76253a6e96be49f4eb87bfca27710b2fde7675e5" }
 hnefatafl-copenhagen = "4"
-hnefatafl-egui = { version = "0.1", git = "https://github.com/dcampbell24/hnefatafl-egui/" }
+hnefatafl-egui = { version = "0.1", git = "https://github.com/dcampbell24/hnefatafl-egui/", branch = "make-ai-better" }
 
 [package.metadata.deb]
 copyright = "2025 David Lawrence Campbell"

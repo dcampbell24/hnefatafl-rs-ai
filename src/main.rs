@@ -11,13 +11,18 @@ use chrono::Utc;
 use clap::{Parser, command};
 use env_logger::Builder;
 use hnefatafl::{
-    board::state::BitfieldBoardState,
+    board::state::{BasicBoardState, BoardState},
     pieces::Side,
-    play::Play,
+    play::{Play, ValidPlay},
     preset::{boards, rules},
 };
 use hnefatafl_copenhagen::{
-    ai::{AiMonteCarlo, AI}, game::Game, play::Plae, role::Role, status::Status, VERSION_ID
+    VERSION_ID,
+    ai::{AI, AiMonteCarlo},
+    game::Game,
+    play::Plae,
+    role::Role,
+    status::Status,
 };
 use hnefatafl_egui::ai::{Ai, BasicAi};
 use log::{LevelFilter, debug, info};
@@ -96,7 +101,7 @@ fn main() -> anyhow::Result<()> {
         }
 
         let game = Game::default();
-        let game_: hnefatafl::game::Game<BitfieldBoardState<u128>> =
+        let game_: hnefatafl::game::Game<BasicBoardState<u128>> =
             hnefatafl::game::Game::new(rules::COPENHAGEN, boards::COPENHAGEN).unwrap();
 
         debug!("\n{}", game.board);
@@ -180,11 +185,11 @@ fn wait_for_challenger(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn handle_messages(
-    mut ai_1: BasicAi,
+fn handle_messages<T: BoardState>(
+    mut ai_1: BasicAi<T>,
     mut ai_2: AiMonteCarlo,
     mut game: Game,
-    mut game_: hnefatafl::game::Game<BitfieldBoardState<u128>>,
+    mut game_: hnefatafl::game::Game<T>,
     game_id: &str,
     role: &Role,
     reader: &mut BufReader<TcpStream>,
@@ -201,7 +206,13 @@ fn handle_messages(
         let message: Vec<_> = buf.split_ascii_whitespace().collect();
 
         if Some("generate_move") == message.get(2).copied() {
-            let Ok((mut play_game_, info)) = ai_1.next_play(&game_.state) else {
+            let Ok((
+                ValidPlay {
+                    play: mut play_game_,
+                },
+                info,
+            )) = ai_1.next_play(&game_.state)
+            else {
                 panic!("we got an error from ai.next_play");
             };
 
