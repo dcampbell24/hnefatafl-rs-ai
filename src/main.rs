@@ -2,6 +2,7 @@ use std::{
     env,
     io::{BufRead, BufReader, Write},
     net::TcpStream,
+    process::exit,
     str::FromStr,
     time::Duration,
 };
@@ -79,6 +80,17 @@ fn main() -> anyhow::Result<()> {
     let mut buf = String::new();
     let mut tcp = TcpStream::connect(address)?;
     let mut reader = BufReader::new(tcp.try_clone()?);
+
+    let mut tcp_clone = tcp.try_clone()?;
+    ctrlc::set_handler(move || {
+        tcp_clone.write_all("logout".as_bytes()).unwrap();
+
+        if !args.systemd {
+            println!();
+        }
+
+        exit(0);
+    })?;
 
     tcp.write_all(format!("{VERSION_ID} login {username} {}\n", args.password).as_bytes())?;
     reader.read_line(&mut buf)?;
