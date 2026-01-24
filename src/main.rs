@@ -305,7 +305,7 @@ fn side_from_role(role: Role) -> Side {
 fn init_logger(debug: bool, systemd: bool) {
     let mut builder = Builder::new();
     let module = "hnefatafl-rs-ai";
-    
+
     if systemd {
         builder.format_timestamp(None);
         builder.format_target(false);
