@@ -7,7 +7,6 @@ use std::{
 };
 
 use anyhow::Error;
-use chrono::Utc;
 use clap::Parser;
 use env_logger::Builder;
 use hnefatafl::{
@@ -25,7 +24,7 @@ use hnefatafl_copenhagen::{
     status::Status,
 };
 use hnefatafl_egui::ai::{Ai, AiError, BasicAi};
-use log::{LevelFilter, debug, info};
+use log::{self, LevelFilter};
 
 // Move 26, defender wins, corner escape, time per move 15s 2025-03-06.
 
@@ -60,12 +59,16 @@ struct Args {
     /// Whether the application is being run by systemd
     #[arg(long)]
     systemd: bool,
+
+    /// Whether to log at the debug level
+    #[arg(long)]
+    debug: bool,
 }
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
-    init_logger(args.systemd);
+    init_logger(args.debug, args.systemd);
 
     let mut username = "ai-".to_string();
     username.push_str(&args.username);
@@ -104,7 +107,7 @@ fn main() -> anyhow::Result<()> {
         let game_: hnefatafl::game::Game<BasicBoardState<u128>> =
             hnefatafl::game::Game::new(rules::COPENHAGEN, boards::COPENHAGEN).unwrap();
 
-        debug!("\n{}", game.board);
+        log::debug!("\n{}", game.board);
 
         let ai_1 = hnefatafl_egui::ai::BasicAi::new(
             game_.logic,
@@ -171,7 +174,7 @@ fn wait_for_challenger(
 
         let message: Vec<_> = buf.split_ascii_whitespace().collect();
         if Some("challenge_requested") == message.get(1).copied() {
-            info!("{message:?}");
+            log::info!("{message:?}");
             buf.clear();
 
             break;
@@ -208,15 +211,15 @@ fn handle_messages<T: BoardState>(
         if Some("generate_move") == message.get(2).copied() {
             match ai_rs.next_play(&game_rs.state) {
                 Ok((ValidPlay { play: mut play_rs }, info)) => {
-                    debug!("play_rs: {play_rs}");
-                    debug!("{info:?}\n");
+                    log::debug!("play_rs: {play_rs}");
+                    log::debug!("{info:?}\n");
 
                     let mut plae = Plae::from_str_(&play_rs.to_string(), role)?;
-                    debug!("play: {plae}");
+                    log::debug!("play: {plae}");
 
                     if game.play(&plae).is_err() {
                         let generate_move = ai.generate_move(&mut game)?;
-                        debug!("changed play to: {generate_move}");
+                        log::debug!("changed play to: {generate_move}");
 
                         plae = generate_move.play;
                         let play = match &plae {
@@ -230,13 +233,13 @@ fn handle_messages<T: BoardState>(
                         };
 
                         play_rs = Play::from_str(&format!("{}-{}", play.from, play.to,)).unwrap();
-                        debug!("changed play to: {play_rs}");
+                        log::debug!("changed play to: {play_rs}");
 
                         tcp.write_all(format!("game {game_id} {plae}\n").as_bytes())?;
                     };
 
                     if let Err(invalid_play) = game_rs.do_play(play_rs) {
-                        debug!("invalid_play: {invalid_play:?}");
+                        log::debug!("invalid_play: {invalid_play:?}");
                         tcp.write_all(
                             format!("game {game_id} play {role} resigns _\n").as_bytes(),
                         )?;
@@ -253,7 +256,7 @@ fn handle_messages<T: BoardState>(
                 Err(AiError::NotMyTurn) => unreachable!(),
             };
 
-            debug!("{}", game.board);
+            log::debug!("{}", game.board);
 
             if game.status != Status::Ongoing {
                 return Ok(());
@@ -276,12 +279,12 @@ fn handle_messages<T: BoardState>(
             let play = Play::from_str(&play).unwrap();
 
             if let Err(invalid_play) = game_rs.do_play(play) {
-                debug!("invalid_play: {invalid_play:?}");
+                log::debug!("invalid_play: {invalid_play:?}");
                 tcp.write_all(format!("game {game_id} play {role} resigns _\n").as_bytes())?;
                 return Ok(());
             }
 
-            debug!("{}", game.board);
+            log::debug!("{}", game.board);
         } else if Some("game_over") == message.get(1).copied() {
             return Ok(());
         }
@@ -299,31 +302,22 @@ fn side_from_role(role: Role) -> Side {
     }
 }
 
-fn init_logger(systemd: bool) {
+fn init_logger(debug: bool, systemd: bool) {
     let mut builder = Builder::new();
-
+    let module = "hnefatafl-rs-ai";
+    
     if systemd {
-        builder.format(|formatter, record| {
-            writeln!(formatter, "[{}]: {}", record.level(), record.args())
-        });
-    } else {
-        builder.format(|formatter, record| {
-            writeln!(
-                formatter,
-                "{} [{}] ({}): {}",
-                Utc::now().format("%Y-%m-%d %H:%M:%S %z"),
-                record.level(),
-                record.target(),
-                record.args()
-            )
-        });
+        builder.format_timestamp(None);
+        builder.format_target(false);
     }
 
     if let Ok(var) = env::var("RUST_LOG") {
         builder.parse_filters(&var);
+    } else if debug {
+        builder.filter(Some(module), LevelFilter::Debug);
     } else {
-        // if no RUST_LOG provided, default to logging at the Info level
-        builder.filter(None, LevelFilter::Info);
+        // If no RUST_LOG provided, default to logging at the Info level.
+        builder.filter(Some(module), LevelFilter::Info);
     }
 
     builder.init();
