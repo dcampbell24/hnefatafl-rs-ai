@@ -8,7 +8,7 @@ use std::{
 
 use anyhow::Error;
 use chrono::Utc;
-use clap::{Parser, command};
+use clap::Parser;
 use env_logger::Builder;
 use hnefatafl::{
     board::state::{BasicBoardState, BoardState},
