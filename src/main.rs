@@ -111,7 +111,7 @@ fn main() -> anyhow::Result<()> {
             side_from_role(args.role),
             Duration::from_secs(15),
         );
-        let ai_2 = AiMonteCarlo::new(&game, Duration::from_secs(10), 20)?;
+        let ai_2 = AiMonteCarlo::new(Duration::from_secs(10), 20);
 
         handle_messages(
             ai_1,
@@ -215,10 +215,10 @@ fn handle_messages<T: BoardState>(
                     debug!("play: {plae}");
 
                     if game.play(&plae).is_err() {
-                        let generate_move = ai.generate_move(&mut game);
+                        let generate_move = ai.generate_move(&mut game)?;
                         debug!("changed play to: {generate_move}");
 
-                        plae = generate_move.play.expect("this is unreachable");
+                        plae = generate_move.play;
                         let play = match &plae {
                             Plae::Play(play) => play,
                             _ => {
