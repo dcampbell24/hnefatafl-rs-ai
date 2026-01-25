@@ -26,6 +26,7 @@ use hnefatafl_copenhagen::{
 };
 use hnefatafl_egui::ai::{Ai, AiError, BasicAi};
 use log::{self, LevelFilter};
+use socket2::{Domain, Socket, TcpKeepalive, Type};
 
 // Move 26, defender wins, corner escape, time per move 15s 2025-03-06.
 
@@ -78,6 +79,14 @@ fn main() -> anyhow::Result<()> {
     address.push_str(PORT);
 
     let mut buf = String::new();
+    let socket = Socket::new(Domain::IPV4, Type::STREAM, None)?;
+    let keepalive = TcpKeepalive::new()
+        .with_time(Duration::from_mins(1))
+        .with_interval(Duration::from_mins(1))
+        .with_retries(3);
+
+    socket.set_tcp_keepalive(&keepalive)?;
+
     let mut tcp = TcpStream::connect(address)?;
     let mut reader = BufReader::new(tcp.try_clone()?);
 
