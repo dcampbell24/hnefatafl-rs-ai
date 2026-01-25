@@ -78,7 +78,7 @@ fn main() -> anyhow::Result<()> {
     address_string.push_str(PORT);
 
     let mut buf = String::new();
-    let socket = Socket::new(Domain::IPV4, Type::STREAM, None).unwrap();
+    let socket = Socket::new(Domain::IPV4, Type::STREAM, None)?;
     let keepalive = TcpKeepalive::new()
         .with_time(Duration::from_secs(30))
         .with_interval(Duration::from_secs(30))
@@ -99,8 +99,6 @@ fn main() -> anyhow::Result<()> {
     let address: SockAddr = socket_address
         .unwrap_or_else(|| panic!("There is no IPv4 address for the host: {address_string}"))
         .into();
-
-    let socket = Socket::new(Domain::IPV4, Type::STREAM, None)?;
 
     socket.connect(&address).unwrap_or_else(|error| {
         panic!("socket.connect {address_string}: {error}");
