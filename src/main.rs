@@ -74,42 +74,58 @@ fn main() -> anyhow::Result<()> {
     let mut username = "ai-".to_string();
     username.push_str(&args.username);
 
-    let mut address_string = args.host.to_string();
+    let mut address_string = args.host.clone();
     address_string.push_str(PORT);
 
-    let mut buf = String::new();
-    let socket = Socket::new(Domain::IPV4, Type::STREAM, None)?;
+    let mut is_ipv6 = false;
+    let mut socket_address = None;
+    let socket_addresses = address_string.to_socket_addrs()?;
+
+    for address in socket_addresses.clone() {
+        if address.is_ipv6() {
+            socket_address = Some(address);
+            is_ipv6 = true;
+            break;
+        }
+    }
+
+    if !is_ipv6 {
+        for address in socket_addresses {
+            if address.is_ipv4() {
+                socket_address = Some(address);
+                break;
+            }
+        }
+    }
+
+    let socket_address = socket_address.ok_or_else(|| {
+        anyhow::Error::msg(format!(
+            "There is no IP address for the host: {address_string}"
+        ))
+    })?;
+
+    let address: SockAddr = socket_address.into();
     let keepalive = TcpKeepalive::new()
         .with_time(Duration::from_secs(30))
         .with_interval(Duration::from_secs(30))
         .with_retries(3);
 
+    let domain_type = if is_ipv6 { Domain::IPV6 } else { Domain::IPV4 };
+    let socket = Socket::new(domain_type, Type::STREAM, None)?;
     socket.set_tcp_keepalive(&keepalive)?;
 
-    let mut socket_address = None;
-    for address in address_string
-        .to_socket_addrs()
-        .unwrap_or_else(|error| panic!("The socket address resolves to no IPs: {error})"))
-    {
-        if address.is_ipv4() {
-            socket_address = Some(address);
-        }
-    }
-
-    let address: SockAddr = socket_address
-        .unwrap_or_else(|| panic!("There is no IPv4 address for the host: {address_string}"))
-        .into();
-
     socket.connect(&address).unwrap_or_else(|error| {
-        panic!("socket.connect {address_string}: {error}");
+        eprintln!("socket.connect {address_string}: {error}");
     });
 
-    log::info!("connected to {address_string} ...");
+    log::info!("connected to {socket_address}");
 
     let mut tcp: TcpStream = socket.into();
     let mut reader = BufReader::new(tcp.try_clone()?);
 
     tcp.write_all(format!("{VERSION_ID} login {username} {}\n", args.password).as_bytes())?;
+
+    let mut buf = String::new();
     reader.read_line(&mut buf)?;
     assert_eq!(buf, "= login\n");
     buf.clear();
@@ -333,7 +349,7 @@ fn side_from_role(role: Role) -> Side {
 
 fn init_logger(debug: bool, systemd: bool) {
     let mut builder = Builder::new();
-    let module = "hnefatafl-rs-ai";
+    let module = "hnefatafl_rs_ai";
 
     if systemd {
         builder.format_timestamp(None);
