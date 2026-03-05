@@ -5,6 +5,7 @@ Description=Copenhagen Hnefatafl AI
 Type=simple
 Restart=always
 ExecStart=/usr/games/hnefatafl-rs-ai --username ${USERNAME} --password ${PASSWORD} --role attacker --systemd
+EnvironmentFile=/etc/hnefatafl-ai-basic-attacker.conf
 
 [Install]
 WantedBy=multi-user.target
