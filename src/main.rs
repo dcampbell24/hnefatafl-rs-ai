@@ -1,5 +1,5 @@
 use std::{
-    env, io::{BufRead, BufReader, Write}, net::{TcpStream, ToSocketAddrs}, str::FromStr, thread::sleep, time::Duration
+    env, io::{BufRead, BufReader, Write}, net::{TcpStream, ToSocketAddrs}, process::Command, str::FromStr, thread::sleep, time::Duration
 };
 
 use anyhow::Error;
@@ -110,10 +110,7 @@ fn main() -> anyhow::Result<()> {
     let socket = Socket::new(domain_type, Type::STREAM, None)?;
     socket.set_tcp_keepalive(&keepalive)?;
 
-    if args.systemd {
-        log::info!("sleeping for 10s...");
-        sleep(Duration::from_secs(10));
-    }
+    systemd_delay_restart(&args)?;
 
     socket.connect(&address).unwrap_or_else(|error| {
         eprintln!("socket.connect {address_string}: {error}");
@@ -367,4 +364,26 @@ fn init_logger(debug: bool, systemd: bool) {
     }
 
     builder.init();
+}
+
+fn systemd_delay_restart(args: &Args) -> anyhow::Result<()> {
+    if args.systemd {
+        let service = match args.role {
+            Role::Attacker => "hnefatafl-ai-basic-attacker.service",
+            Role::Defender => "hnefatafl-ai-basic-defender.service",
+            Role::Roleless => unreachable!(),
+        };
+
+        let output = Command::new("systemctl")
+            .args(["show", service, "-p", "NRestarts"])
+            .output()?;
+
+        let i = String::from_utf8_lossy(&output.stdout).parse()?;
+        let delay = 2u64.pow(i);
+
+        log::info!("sleeping for {delay}s...");
+        sleep(Duration::from_secs(delay));
+    }
+
+    Ok(())
 }
