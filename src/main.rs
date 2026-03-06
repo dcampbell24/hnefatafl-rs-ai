@@ -379,10 +379,12 @@ fn systemd_delay_restart(args: &Args) -> anyhow::Result<()> {
             .output()?;
 
         let i = String::from_utf8_lossy(&output.stdout).replace("NRestarts=", "").trim().parse()?;
-        let delay = 2u64.pow(i);
 
-        log::info!("sleeping for {delay}s...");
-        sleep(Duration::from_secs(delay));
+        if i > 0 {
+            let delay = 2u64.pow(i);
+            log::info!("sleeping for {delay}s...");
+            sleep(Duration::from_secs(delay));
+        }
     }
 
     Ok(())
