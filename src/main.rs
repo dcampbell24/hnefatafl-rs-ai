@@ -110,8 +110,10 @@ fn main() -> anyhow::Result<()> {
     let socket = Socket::new(domain_type, Type::STREAM, None)?;
     socket.set_tcp_keepalive(&keepalive)?;
 
-    log::info!("sleeping for 10s...");
-    sleep(Duration::from_secs(10));
+    if args.systemd {
+        log::info!("sleeping for 10s...");
+        sleep(Duration::from_secs(10));
+    }
 
     socket.connect(&address).unwrap_or_else(|error| {
         eprintln!("socket.connect {address_string}: {error}");
