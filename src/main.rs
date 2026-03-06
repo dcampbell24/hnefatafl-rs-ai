@@ -1,9 +1,5 @@
 use std::{
-    env,
-    io::{BufRead, BufReader, Write},
-    net::{TcpStream, ToSocketAddrs},
-    str::FromStr,
-    time::Duration,
+    env, io::{BufRead, BufReader, Write}, net::{TcpStream, ToSocketAddrs}, str::FromStr, thread::sleep, time::Duration
 };
 
 use anyhow::Error;
@@ -113,6 +109,9 @@ fn main() -> anyhow::Result<()> {
     let domain_type = if is_ipv6 { Domain::IPV6 } else { Domain::IPV4 };
     let socket = Socket::new(domain_type, Type::STREAM, None)?;
     socket.set_tcp_keepalive(&keepalive)?;
+
+    log::info!("sleeping for 10s...");
+    sleep(Duration::from_secs(10));
 
     socket.connect(&address).unwrap_or_else(|error| {
         eprintln!("socket.connect {address_string}: {error}");
