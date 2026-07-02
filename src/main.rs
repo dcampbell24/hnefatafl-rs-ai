@@ -135,7 +135,7 @@ fn main() -> anyhow::Result<()> {
 
             let message: Vec<_> = buf.split_ascii_whitespace().collect();
             println!("{message:?}");
-            game_id = message[3].to_string();
+            game_id = message[2].to_string();
             buf.clear();
 
             wait_for_challenger(&mut reader, &mut buf, &mut tcp, &game_id)?;
