@@ -2027,6 +2027,7 @@ dependencies = [
  "hnefatafl-copenhagen",
  "hnefatafl-egui",
  "log",
+ "serde_json",
  "socket2",
 ]
 

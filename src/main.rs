@@ -12,12 +12,7 @@ use hnefatafl::{
     preset::{boards, rules},
 };
 use hnefatafl_copenhagen::{
-    VERSION_ID,
-    ai::{AI, AiMonteCarlo},
-    game::Game,
-    play::Plae,
-    role::Role,
-    status::Status,
+    VERSION_ID, ai::{AI, AiMonteCarlo}, game::Game, play::Plae, role::Role, server_game::NewGame, status::Status, time::{Time, TimeSettings},
 };
 use hnefatafl_egui::ai::{Ai, AiError, BasicAi};
 use log::{self, LevelFilter};
@@ -183,7 +178,21 @@ fn new_game(
     reader: &mut BufReader<TcpStream>,
     buf: &mut String,
 ) -> anyhow::Result<()> {
-    tcp.write_all(format!("new_game {role} rated fischer 900000 10 11\n").as_bytes())?;
+    let new_game = NewGame {
+        role,
+        rated: true,
+        time_settings: TimeSettings::Timed(Time {
+            add_seconds: 10,
+            milliseconds_left: 900_000,
+        }),
+        board_size: 11,
+    };
+
+    let new_game = serde_json::ser::to_string(&new_game)?;
+
+
+
+    tcp.write_all(format!("new_game {new_game}\n").as_bytes())?;
 
     loop {
         // "= new_game game GAME_ID ai-00 _ rated fischer 900000 10 _ false {}\n"
