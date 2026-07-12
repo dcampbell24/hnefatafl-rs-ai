@@ -1,5 +1,11 @@
 use std::{
-    env, io::{BufRead, BufReader, Write}, net::{TcpStream, ToSocketAddrs}, process::Command, str::FromStr, thread::sleep, time::Duration
+    env,
+    io::{BufRead, BufReader, Write},
+    net::{TcpStream, ToSocketAddrs},
+    process::Command,
+    str::FromStr,
+    thread::sleep,
+    time::Duration,
 };
 
 use anyhow::Error;
@@ -12,7 +18,14 @@ use hnefatafl::{
     preset::{boards, rules},
 };
 use hnefatafl_copenhagen::{
-    VERSION_ID, ai::{AI, AiMonteCarlo}, game::Game, play::Plae, role::Role, server_game::NewGame, status::Status, time::{Time, TimeSettings},
+    SOFTWARE_ID, VERSION_ID,
+    ai::{AI, AiMonteCarlo},
+    game::Game,
+    play::Plae,
+    role::Role,
+    server_game::NewGame,
+    status::Status,
+    time::{Time, TimeSettings},
 };
 use hnefatafl_egui::ai::{Ai, AiError, BasicAi};
 use log::{self, LevelFilter};
@@ -117,6 +130,7 @@ fn main() -> anyhow::Result<()> {
     let mut reader = BufReader::new(tcp.try_clone()?);
 
     tcp.write_all(format!("{VERSION_ID} login {username} {}\n", args.password).as_bytes())?;
+    tcp.write_all(format!("software_id {SOFTWARE_ID}\n").as_bytes())?;
 
     let mut buf = String::new();
     reader.read_line(&mut buf)?;
@@ -189,8 +203,6 @@ fn new_game(
     };
 
     let new_game = serde_json::ser::to_string(&new_game)?;
-
-
 
     tcp.write_all(format!("new_game {new_game}\n").as_bytes())?;
 
@@ -387,7 +399,10 @@ fn systemd_delay_restart(args: &Args) -> anyhow::Result<()> {
             .args(["show", service, "-p", "NRestarts"])
             .output()?;
 
-        let i = String::from_utf8_lossy(&output.stdout).replace("NRestarts=", "").trim().parse()?;
+        let i = String::from_utf8_lossy(&output.stdout)
+            .replace("NRestarts=", "")
+            .trim()
+            .parse()?;
 
         if i > 0 {
             let delay = 2u64.pow(i);
